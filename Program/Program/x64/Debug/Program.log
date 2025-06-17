@@ -1,0 +1,4 @@
+﻿  Program.cpp
+C:\Users\mu qing\Desktop\uni\2nd_year\практика\2\lab2cp2025-Taisiia-Hulko\Program\Program\Program.cpp(65,15): warning C4244: аргумент: преобразование "time_t" в "unsigned int", возможна потеря данных
+C:\Users\mu qing\Desktop\uni\2nd_year\практика\2\lab2cp2025-Taisiia-Hulko\Program\Program\Program.cpp(76,42): warning C4244: +=: преобразование "double" в "int", возможна потеря данных
+  Program.vcxproj -> C:\Users\mu qing\Desktop\uni\2nd_year\практика\2\lab2cp2025-Taisiia-Hulko\Program\x64\Debug\Program.exe
