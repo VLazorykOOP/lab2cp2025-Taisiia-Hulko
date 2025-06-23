@@ -4,12 +4,15 @@
 #include <ctime>
 #include <thread>
 #include <mutex>
+#include <chrono>
 
 const double PI = 3.1415926535;
 
 struct Position {
     double x, y;
 };
+
+std::mutex cout_mutex;
 
 class Developer {
 public:
@@ -31,8 +34,20 @@ public:
         pos.y += speed * dt * sin(angle);
     }
 
-    void print() {
-        std::cout << "Dev at (" << pos.x << ", " << pos.y << ")\n";
+    void print(int t) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "[Time " << t << "s] Dev at (" << pos.x << ", " << pos.y << ")\n";
+    }
+
+    void run(int totalTime, int N, double dt) {
+        for (int t = 0; t <= totalTime; t += dt) {
+            if (t % N == 0) {
+                updateDirection();
+            }
+            move(dt);
+            print(t);
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(dt * 1000)));
+        }
     }
 };
 
@@ -58,35 +73,19 @@ public:
         pos.y = radius * sin(angle);
     }
 
-    void print() {
-        std::cout << "Manager at (" << pos.x << ", " << pos.y << ")\n";
+    void print(int t) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "[Time " << t << "s] Manager at (" << pos.x << ", " << pos.y << ")\n";
+    }
+
+    void run(int totalTime, double dt) {
+        for (int t = 0; t <= totalTime; t += dt) {
+            move(dt);
+            print(t);
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(dt * 1000)));
+        }
     }
 };
-
-std::mutex mtx;
-
-void developerThread(Developer& dev, int N, double dt, int totalTime) {
-    for (int t = 0; t <= totalTime; t += dt) {
-        if (t % N == 0) {
-            dev.updateDirection();
-        }
-        dev.move(dt);
-
-        std::lock_guard<std::mutex> lock(mtx);
-        std::cout << "[Time " << t << "s] ";
-        dev.print();
-    }
-}
-
-void managerThread(Manager& man, double dt, int totalTime) {
-    for (int t = 0; t <= totalTime; t += dt) {
-        man.move(dt);
-
-        std::lock_guard<std::mutex> lock(mtx);
-        std::cout << "[Time " << t << "s] ";
-        man.print();
-    }
-}
 
 int main() {
     srand(time(0));
@@ -100,8 +99,8 @@ int main() {
     Developer dev(V);
     Manager man(V, R);
 
-    std::thread devThread(developerThread, std::ref(dev), N, dt, totalTime);
-    std::thread manThread(managerThread, std::ref(man), dt, totalTime);
+    std::thread devThread(&Developer::run, &dev, totalTime, N, dt);
+    std::thread manThread(&Manager::run, &man, totalTime, dt);
 
     devThread.join();
     manThread.join();
