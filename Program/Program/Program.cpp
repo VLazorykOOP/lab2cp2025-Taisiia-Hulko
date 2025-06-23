@@ -1,7 +1,9 @@
-﻿#include <iostream>
+#include <iostream>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <thread>
+#include <mutex>
 
 const double PI = 3.1415926535;
 
@@ -12,7 +14,7 @@ struct Position {
 class Developer {
 public:
     Position pos;
-    double angle; // напрям руху в радіанах
+    double angle;
     double speed;
 
     Developer(double speed) : speed(speed) {
@@ -37,7 +39,7 @@ public:
 class Manager {
 public:
     Position pos;
-    double angle; // поточне положення по колу в радіанах
+    double angle;
     double speed;
     double radius;
 
@@ -61,31 +63,48 @@ public:
     }
 };
 
+std::mutex mtx;
+
+void developerThread(Developer& dev, int N, double dt, int totalTime) {
+    for (int t = 0; t <= totalTime; t += dt) {
+        if (t % N == 0) {
+            dev.updateDirection();
+        }
+        dev.move(dt);
+
+        std::lock_guard<std::mutex> lock(mtx);
+        std::cout << "[Time " << t << "s] ";
+        dev.print();
+    }
+}
+
+void managerThread(Manager& man, double dt, int totalTime) {
+    for (int t = 0; t <= totalTime; t += dt) {
+        man.move(dt);
+
+        std::lock_guard<std::mutex> lock(mtx);
+        std::cout << "[Time " << t << "s] ";
+        man.print();
+    }
+}
+
 int main() {
     srand(time(0));
 
-    double V = 1.0;      // швидкість
-    double R = 5.0;      // радіус кола для менеджерів
-    int N = 5;           // інтервал зміни напрямку для розробників
-    int totalTime = 30;  // тривалість симуляції
-    double dt = 1.0;     // крок часу
+    double V = 1.0;
+    double R = 5.0;
+    int N = 5;
+    int totalTime = 30;
+    double dt = 1.0;
 
     Developer dev(V);
     Manager man(V, R);
 
-    for (int t = 0; t <= totalTime; t += dt) {
-        std::cout << "Time: " << t << "s\n";
-        if (t % N == 0) {
-            dev.updateDirection();
-        }
+    std::thread devThread(developerThread, std::ref(dev), N, dt, totalTime);
+    std::thread manThread(managerThread, std::ref(man), dt, totalTime);
 
-        dev.move(dt);
-        man.move(dt);
-
-        dev.print();
-        man.print();
-        std::cout << "-------------------\n";
-    }
+    devThread.join();
+    manThread.join();
 
     return 0;
 }
